@@ -1,7 +1,8 @@
-import shelve
+import gc
 import re
 import os
 from tqdm import tqdm
+import pickle
 
 base_dir = "输入法小作业"
 char_list = open(base_dir + "/拼音汉字表/一二级汉字表.txt", 'r', encoding='gbk').read()
@@ -52,11 +53,13 @@ def build_table_of_char(path, encoding='gbk'):
                 continue
 
             pre_char = sentence[i - 1]
+            char = sentence[i]
+
+            # init the dict
             if pre_char not in table_1_to_1:
                 table_1_to_1[pre_char] = {}
 
             curr_dict = table_1_to_1[pre_char]
-            char = sentence[i]
 
             if char in curr_dict:
                 curr_dict[char] += 1
@@ -79,22 +82,26 @@ def build_table_of_char(path, encoding='gbk'):
                 curr_dict[char] += 1
             else:
                 curr_dict[char] = 1
+    gc.collect()
 
 
 def build_table():
-    ignore_list = ['.DS_Store']
-    utf_list = ['baike', 'wiki']
-
-    db = shelve.open('data/table')
-
     print("start building table...")
 
+    ignore_list = ['.DS_Store']
+    utf_list = ['baike', 'wiki', '中国']
+
+    dic_pkl = open('data/dictionary.pkl', 'wb')
     build_dictionary(base_dir + "/拼音汉字表/拼音汉字表.txt")
-    db['dictionary'] = dictionary
+    pickle.dump(dictionary, dic_pkl)
+    dic_pkl.close()
     print("build dictionary succeed!")
 
+    # build count table
+    count = 0
     for filepath, dirname, filename in os.walk(base_dir + "/语料库"):
-        for file in filename[:1]:
+        count += 1
+        for file in filename:
             if file in ignore_list:
                 continue
             full_path = os.path.join(filepath, file)
@@ -110,11 +117,12 @@ def build_table():
             else:
                 build_table_of_char(full_path)
             print("build table of " + full_path + " succeed!")
-        is_continue = input("continue? (y/n)")
-        if is_continue == 'n':
-            break
 
-    db['table_at_first'] = table_at_first
-    db['table_2_to_1'] = table_2_to_1
-    db['table_1_to_1'] = table_1_to_1
-    db.close()
+    match_pkl = open('data/match.pkl', 'wb')
+    pickle.dump([table_at_first, table_1_to_1, table_2_to_1], match_pkl)
+    match_pkl.close()
+
+    count_pkl = open('data/count.pkl', 'wb')
+    table_one_count = {key: sum(table_1_to_1[key].values()) for key in table_1_to_1}
+    table_two_count = {key: sum(table_2_to_1[key].values()) for key in table_2_to_1}
+    pickle.dump([table_one_count, table_two_count], count_pkl)
