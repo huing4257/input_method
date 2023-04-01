@@ -1,15 +1,19 @@
-import os
 import re
 import pickle
 import numpy as np
 
-import build_db
+# const value
+CHAR_COFF = 8
+WORD_COFF = 3
 
 if __name__ == '__main__':
 
     dictionary = pickle.load(open('data/dictionary.pkl', 'rb'))
     table_at_first, table_1_to_1, table_2_to_1 = pickle.load(open('data/match.pkl', 'rb'))
     table_one_count, table_two_count = pickle.load(open('data/count.pkl', 'rb'))
+
+    sum_of_one_count = sum(table_one_count.values())
+    sum_of_two_count = sum(table_two_count.values())
 
     # assert type of dicts get from shelve to avoid warning
     assert isinstance(dictionary, dict)
@@ -48,7 +52,9 @@ if __name__ == '__main__':
                     if whole_set == {}:
                         continue
                     sum_value = table_one_count[steps[0][j]]
-                    log_prob = dp[0][j] + np.log(whole_set.get(steps[1][i], 0.00000001) / sum_value)
+                    log_prob = dp[0][j] + np.log(whole_set.get(steps[1][i], 0.00000001) / sum_value) + np.log(
+                        table_one_count.get(steps[1][i], 0.00000001) / sum_of_one_count) / CHAR_COFF + np.log(
+                        table_two_count.get(steps[0][j] + steps[1][i], 0.00000001) / sum_of_two_count) / WORD_COFF
                     if log_prob > max_log_prob:
                         max_log_prob = log_prob
                         pred[1][i] = j
@@ -63,7 +69,10 @@ if __name__ == '__main__':
                         if whole_set == {}:
                             continue
                         sum_value = table_two_count[steps[i - 2][pred[i - 1][k]] + steps[i - 1][k]]
-                        log_prob = dp[i - 1][k] + np.log(whole_set.get(steps[i][j], 0.000000001) / sum_value)
+                        log_prob = dp[i - 1][k] + np.log(whole_set.get(steps[i][j], 0.00000001) / sum_value) + np.log(
+                            table_one_count.get(steps[i][j], 0.00000001) / sum_of_one_count) / CHAR_COFF + np.log(
+                            table_two_count.get(steps[i - 1][k] + steps[i][j], 0.00000001) / sum_of_two_count
+                        ) / WORD_COFF
                         if log_prob > max_log_prob:
                             max_log_prob = log_prob
                             pred[i][j] = k
