@@ -18,8 +18,12 @@ def get_output_line():
         except KeyError:
             print("pinyin not found: " + pinyin)
             return ''
-
     num_step = len(steps)
+    try:
+        assert (num_step > 1)
+    except AssertionError:
+        print("number of pinyin should be greater than 1")
+        return ''
     # store the best path
     pred = [np.zeros(len(steps[i]), dtype=int) for i in range(num_step)]
     # build dp table
@@ -72,8 +76,6 @@ def get_output_line():
 
 if __name__ == '__main__':
 
-    print("Loading data...")
-
     # read args
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', help='input file path', default='data/input.txt')
@@ -83,6 +85,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     input_path = args.input
     output_path = args.output
+
+    print("Loading data...")
 
     try:
         dictionary = pickle.load(open('src/dictionary.pkl', 'rb'))

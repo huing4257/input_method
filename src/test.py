@@ -1,4 +1,7 @@
 import re
+import os
+
+os.system('python src/main.py')
 
 my_output = open('data/output.txt', 'r', encoding='utf').read()
 std_output = open('data/std_output.txt', 'r', encoding='utf').read()
